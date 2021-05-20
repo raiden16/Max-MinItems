@@ -4,6 +4,7 @@
     Friend SBOCompany As SAPbobsCOM.Company '//OBJETO COMPAÑIA
     Friend csDirectory As String '//DIRECTORIO DONDE SE ENCUENTRAN LOS .SRF
     Dim WhsCode As String
+    Dim sucursal As String
 
     Public Sub New()
         MyBase.New()
@@ -125,10 +126,13 @@
             lofilters = New SAPbouiCOM.EventFilters
             lofilter = lofilters.Add(SAPbouiCOM.BoEventTypes.et_ITEM_PRESSED)
             lofilter.AddEx("tekMaxMin") '////// FORMA UDO DE ENTREGAS
+            lofilter.AddEx("tekMaxMinValle") '////// FORMA UDO DE ENTREGAS
             lofilter = lofilters.Add(SAPbouiCOM.BoEventTypes.et_KEY_DOWN)
             lofilter.AddEx("tekMaxMin") '////// FORMA UDO DE ENTREGAS
+            lofilter.AddEx("tekMaxMinValle") '////// FORMA UDO DE ENTREGAS
             lofilter = lofilters.Add(SAPbouiCOM.BoEventTypes.et_COMBO_SELECT)
             lofilter.AddEx("tekMaxMin") '////// FORMA UDO DE ENTREGAS
+            lofilter.AddEx("tekMaxMinValle") '////// FORMA UDO DE ENTREGAS
             lofilter = lofilters.Add(SAPbouiCOM.BoEventTypes.et_MENU_CLICK)
 
             SBOApplication.SetFilter(lofilters)
@@ -198,6 +202,9 @@
                     Case "tekMaxMin"
                         FrmMaxMinSBOControllerAfter(FormUID, pVal)
 
+                    Case "tekMaxMinValle"
+                        FrmMaxMinSBOControllerAfter(FormUID, pVal)
+
                 End Select
             End If
 
@@ -211,23 +218,58 @@
     Private Sub FrmMaxMinSBOControllerAfter(ByVal FormUID As String, ByVal pVal As SAPbouiCOM.ItemEvent)
 
         Dim oTransferRequest As TransferRequest
+        Dim otekMaxMin As FrmMaxMin
 
         Try
 
-            Select Case pVal.EventType
+            If WhsCode = "VALLEJO" Then
 
-                Case SAPbouiCOM.BoEventTypes.et_ITEM_PRESSED
+                Select Case pVal.EventType
 
-                    Select Case pVal.ItemUID
+                    Case SAPbouiCOM.BoEventTypes.et_ITEM_PRESSED
 
-                        Case "4"
+                        Select Case pVal.ItemUID
 
-                            oTransferRequest = New TransferRequest
-                            oTransferRequest.addTransferRequest(FormUID, csDirectory, WhsCode)
+                            Case "5"
 
-                    End Select
+                                otekMaxMin = New FrmMaxMin
+                                sucursal = otekMaxMin.AgregarLineas(FormUID)
 
-            End Select
+                            Case "4"
+
+                                oTransferRequest = New TransferRequest
+                                If sucursal Is Nothing Or sucursal = "" Then
+
+                                    SBOApplication.MessageBox("Seleciona una ""Sucursal"" y una ""Sucursal de Origen""")
+
+                                Else
+
+                                    oTransferRequest.addTransferRequest(FormUID, csDirectory, sucursal)
+
+                                End If
+
+                        End Select
+
+                End Select
+
+            Else
+
+                Select Case pVal.EventType
+
+                    Case SAPbouiCOM.BoEventTypes.et_ITEM_PRESSED
+
+                        Select Case pVal.ItemUID
+
+                            Case "4"
+
+                                oTransferRequest = New TransferRequest
+                                oTransferRequest.addTransferRequest(FormUID, csDirectory, WhsCode)
+
+                        End Select
+
+                End Select
+
+            End If
 
         Catch ex As Exception
             SBOApplication.MessageBox("FrmEntregaSBOControllerAfter. Error en forma de Panel General. " & ex.Message)

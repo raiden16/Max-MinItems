@@ -8,6 +8,7 @@ Public Class FrmMaxMin
     Private csFormUID As String
     Private stDocNum As String
     Friend Monto As Double
+    Friend sucursal As String
 
     '//----- METODO DE CREACION DE LA CLASE
     Public Sub New()
@@ -30,26 +31,71 @@ Public Class FrmMaxMin
 
             oRecSetH = cSBOCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset)
 
-            csFormUID = "tekMaxMin"
+            stQueryH = "Select T0.""DfltsGroup"" from OUSR T0 where T0.""USER_CODE""='" & cSBOCompany.UserName & "'"
+            oRecSetH.DoQuery(stQueryH)
+
+            If oRecSetH.RecordCount > 0 Then
+
+                Sucursal = oRecSetH.Fields.Item("DfltsGroup").Value
+
+            End If
+
+            If sucursal = "VALLEJO" Then
+
+                csFormUID = "tekMaxMinValle"
+
+            Else
+
+                csFormUID = "tekMaxMin"
+
+            End If
+
             '//CARGA LA FORMA
             If (loadFormXML(cSBOApplication, csFormUID, psDirectory + "\Forms\" + csFormUID + ".srf") <> 0) Then
 
                 Err.Raise(-1, 1, "")
+
             End If
             '"que pedo"
             '--- Referencia de Forma
             setForm(csFormUID)
 
-            WhsCode = AgregarLineas()
+            If sucursal = "VALLEJO" Then
+
+                cargarCombos()
+
+            End If
+
+            If sucursal <> "VALLEJO" Then
+
+                WhsCode = AgregarLineas("tekMaxMin")
+
+            Else
+
+                WhsCode = "VALLEJO"
+
+            End If
 
             '---- refresca forma
             coForm.Refresh()
             coForm.Visible = True
 
-            coForm = cSBOApplication.Forms.Item("tekMaxMin")
+            If sucursal = "VALLEJO" Then
+
+                coForm = cSBOApplication.Forms.Item("tekMaxMinValle")
+
+            Else
+
+                coForm = cSBOApplication.Forms.Item("tekMaxMin")
+
+            End If
 
             'coForm.Items.Item("3").Enabled = False
-            coForm.Items.Item("2").Enabled = False
+            If sucursal <> "VALLEJO" Then
+
+                coForm.Items.Item("2").Enabled = False
+
+            End If
 
             Return WhsCode
 
@@ -112,6 +158,7 @@ Public Class FrmMaxMin
         Dim oGrid As SAPbouiCOM.Grid
         Dim stQueryH As String
         Dim oRecSetH As SAPbobsCOM.Recordset
+        Dim oCombo, oCombo2 As SAPbouiCOM.ComboBox
 
         Try
 
@@ -122,13 +169,29 @@ Public Class FrmMaxMin
             stQueryH = "Select T0.""DfltsGroup"" from OUSR T0 where T0.""USER_CODE""='" & cSBOCompany.UserName & "'"
             oRecSetH.DoQuery(stQueryH)
 
-            loDS = coForm.DataSources.UserDataSources.Add("dsHouse", SAPbouiCOM.BoDataType.dt_SHORT_TEXT) 'Creo el datasources
-            loText2 = coForm.Items.Item("2").Specific  'identifico mi caja de texto
-            loText2.Caption = oRecSetH.Fields.Item("DfltsGroup").Value
+            If sucursal <> "VALLEJO" Then
+
+                loDS = coForm.DataSources.UserDataSources.Add("dsHouse", SAPbouiCOM.BoDataType.dt_SHORT_TEXT) 'Creo el datasources
+                loText2 = coForm.Items.Item("2").Specific  'identifico mi caja de texto
+                loText2.Caption = oRecSetH.Fields.Item("DfltsGroup").Value
+
+            End If
 
             oGrid = coForm.Items.Item("3").Specific
             oDataTable = coForm.DataSources.DataTables.Add("Stock")
             oGrid.DataTable = oDataTable
+
+            If sucursal = "VALLEJO" Then
+
+                loDS = coForm.DataSources.UserDataSources.Add("dsSucursal", SAPbouiCOM.BoDataType.dt_SHORT_TEXT) 'Creo el datasources
+                oCombo = coForm.Items.Item("7").Specific  'identifico mi combobox
+                oCombo.DataBind.SetBound(True, "", "dsSucursal")   ' uno mi userdatasources a mi combobox
+
+                loDS = coForm.DataSources.UserDataSources.Add("dsSucursaO", SAPbouiCOM.BoDataType.dt_SHORT_TEXT) 'Creo el datasources
+                oCombo2 = coForm.Items.Item("8").Specific  'identifico mi combobox
+                oCombo2.DataBind.SetBound(True, "", "dsSucursaO")   ' uno mi userdatasources a mi combobox
+
+            End If
 
         Catch ex As Exception
             cSBOApplication.MessageBox("FrmtekDel. Al crear los UserDataSources. " & ex.Message)
@@ -142,8 +205,56 @@ Public Class FrmMaxMin
     End Function
 
 
+    Public Function cargarCombos()
+
+        Dim oCombo, oCombo2 As SAPbouiCOM.ComboBox
+        Dim oRecSet As SAPbobsCOM.Recordset
+
+        Try
+            cargarCombos = 0
+            '--- referencia de combo 
+            oCombo = coForm.Items.Item("7").Specific
+            oCombo2 = coForm.Items.Item("8").Specific
+            coForm.Freeze(True)
+            '---- SI YA SE TIENEN VALORES, SE ELIMMINAN DEL COMBO
+            If oCombo.ValidValues.Count > 0 Then
+                Do
+                    oCombo.ValidValues.Remove(0, SAPbouiCOM.BoSearchKey.psk_Index)
+                Loop While oCombo.ValidValues.Count > 0
+            End If
+            If oCombo2.ValidValues.Count > 0 Then
+                Do
+                    oCombo2.ValidValues.Remove(0, SAPbouiCOM.BoSearchKey.psk_Index)
+                Loop While oCombo2.ValidValues.Count > 0
+            End If
+            '--- realizar consulta
+            oRecSet = cSBOCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset)
+            oRecSet.DoQuery("Select ""WhsCode"",""WhsName"" from OWHS order by 1")
+            '---- cargamos resultado
+            oRecSet.MoveFirst()
+            Do While oRecSet.EoF = False
+                oCombo.ValidValues.Add(oRecSet.Fields.Item(0).Value, oRecSet.Fields.Item(1).Value)
+                oCombo2.ValidValues.Add(oRecSet.Fields.Item(0).Value, oRecSet.Fields.Item(1).Value)
+                oRecSet.MoveNext()
+            Loop
+            oCombo.Select(0, SAPbouiCOM.BoSearchKey.psk_Index)
+            oCombo2.Select(0, SAPbouiCOM.BoSearchKey.psk_Index)
+            coForm.Freeze(False)
+
+
+        Catch ex As Exception
+            coForm.Freeze(False)
+            MsgBox("FrmtekDel. Fallo la carga previa del comboBox cargarComboChofi: " & ex.Message)
+        Finally
+            oCombo = Nothing
+            oCombo2 = Nothing
+            oRecSet = Nothing
+        End Try
+    End Function
+
+
     '----- carga los procesos de carga
-    Public Function AgregarLineas()
+    Public Function AgregarLineas(ByVal FormUID As String)
         Dim oGrid As SAPbouiCOM.Grid
         Dim stQuery, stQuery2 As String
         Dim oRecSet, oRecSet2 As SAPbobsCOM.Recordset
@@ -152,17 +263,32 @@ Public Class FrmMaxMin
 
         Try
 
+            coForm = cSBOApplication.Forms.Item(FormUID)
             oGrid = coForm.Items.Item("3").Specific
             oGrid.DataTable.Clear()
 
             User = cSBOCompany.UserName
             oRecSet = cSBOCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset)
-            stQuery = "Select T1.""Warehouse"" as ""Stock"" from OUSR T0 Inner Join OUDG T1 on T0.""DfltsGroup""=T1.""Code"" where T0.""USER_CODE""='" & User & "'"
-            oRecSet.DoQuery(stQuery)
-            WhsCode = oRecSet.Fields.Item("Stock").Value
 
-            oRecSet2 = cSBOCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset)
-            stQuery2 = "CALL CONSULTA_MAXANDMIN_ITEMS('" & WhsCode & "')"
+            If FormUID = "tekMaxMin" Then
+
+                stQuery = "Select T1.""Warehouse"" as ""Stock"" from OUSR T0 Inner Join OUDG T1 on T0.""DfltsGroup""=T1.""Code"" where T0.""USER_CODE""='" & User & "'"
+                oRecSet.DoQuery(stQuery)
+                WhsCode = oRecSet.Fields.Item("Stock").Value
+
+                oRecSet2 = cSBOCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset)
+                stQuery2 = "CALL CONSULTA_MAXANDMIN_ITEMS('" & WhsCode & "')"
+
+            Else
+
+                WhsCode = coForm.DataSources.UserDataSources.Item("dsSucursal").Value
+
+                oRecSet2 = cSBOCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset)
+                stQuery2 = "CALL CONSULTA_MAXANDMIN_ITEMSVALLE('" & coForm.DataSources.UserDataSources.Item("dsSucursal").Value & "','" & coForm.DataSources.UserDataSources.Item("dsSucursaO").Value & "')"
+                oRecSet2.DoQuery(stQuery2)
+
+            End If
+
             oGrid.DataTable.ExecuteQuery(stQuery2)
 
             For numfila As Integer = 0 To oGrid.Rows.Count - 1

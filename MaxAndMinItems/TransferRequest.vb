@@ -55,8 +55,17 @@
 
                 oTransferRequest.DocDate = DateTime.Now.ToString("dd/MM/yyyy")
                 oTransferRequest.DueDate = DateTime.Now.ToString("dd/MM/yyyy")
-                oTransferRequest.FromWarehouse = "001"
                 oTransferRequest.ToWarehouse = WhsCode
+
+                If WhsCode <> "001" Then
+
+                    oTransferRequest.FromWarehouse = "001"
+
+                Else
+
+                    oTransferRequest.FromWarehouse = coForm.DataSources.UserDataSources.Item("dsSucursaO").Value
+
+                End If
 
                 For i = 0 To oDataTable.Rows.Count - 1
 
@@ -89,10 +98,19 @@
 
                                     oTransferRequest.Lines.ItemCode = oDataTable.GetValue("Artículo", i)
                                     oTransferRequest.Lines.Quantity = Requerido
-                                    oTransferRequest.Lines.FromWarehouseCode = "001"
                                     oTransferRequest.Lines.WarehouseCode = WhsCode
                                     oTransferRequest.Lines.UserFields.Fields.Item("U_Requerido").Value = Requerido
                                     oTransferRequest.Lines.UserFields.Fields.Item("U_CajasReq").Value = Cajas
+
+                                    If WhsCode <> "001" Then
+
+                                        oTransferRequest.Lines.FromWarehouseCode = "001"
+
+                                    Else
+
+                                        oTransferRequest.Lines.FromWarehouseCode = coForm.DataSources.UserDataSources.Item("dsSucursaO").Value
+
+                                    End If
 
                                     oTransferRequest.Lines.Add()
 
@@ -112,10 +130,19 @@
 
                                     oTransferRequest.Lines.ItemCode = oDataTable.GetValue("Artículo", i)
                                     oTransferRequest.Lines.Quantity = Requerido
-                                    oTransferRequest.Lines.FromWarehouseCode = "001"
                                     oTransferRequest.Lines.WarehouseCode = WhsCode
                                     oTransferRequest.Lines.UserFields.Fields.Item("U_Requerido").Value = Requerido
                                     oTransferRequest.Lines.UserFields.Fields.Item("U_CajasReq").Value = Cajas
+
+                                    If WhsCode <> "001" Then
+
+                                        oTransferRequest.Lines.FromWarehouseCode = "001"
+
+                                    Else
+
+                                        oTransferRequest.Lines.FromWarehouseCode = coForm.DataSources.UserDataSources.Item("dsSucursaO").Value
+
+                                    End If
 
                                     oTransferRequest.Lines.Add()
 
@@ -131,24 +158,24 @@
 
                 If oTransferRequest.Add() <> 0 Then
 
-                    SBOCompany.GetLastError(llError, lsError)
-                    Err.Raise(-1, 1, lsError)
+                        SBOCompany.GetLastError(llError, lsError)
+                        Err.Raise(-1, 1, lsError)
 
-                Else
+                    Else
 
-                    stQueryH3 = "Select ""DocNum"" from OWTQ where ""DocEntry""=" & SBOCompany.GetNewObjectKey()
-                    oRecSetH3.DoQuery(stQueryH3)
+                        stQueryH3 = "Select ""DocNum"" from OWTQ where ""DocEntry""=" & SBOCompany.GetNewObjectKey()
+                        oRecSetH3.DoQuery(stQueryH3)
 
-                    If oRecSetH3.RecordCount > 0 Then
+                        If oRecSetH3.RecordCount > 0 Then
 
-                        SBOApplication.MessageBox("La solicitud de traslado se creo con éxito con el número " & oRecSetH3.Fields.Item("DocNum").Value & ".")
-                        coForm.Close()
+                            SBOApplication.MessageBox("La solicitud de traslado se creo con éxito con el número " & oRecSetH3.Fields.Item("DocNum").Value & ".")
+                            coForm.Close()
+
+                        End If
 
                     End If
 
                 End If
-
-            End If
 
 
         Catch ex As Exception
