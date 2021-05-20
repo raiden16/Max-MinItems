@@ -25,6 +25,7 @@
         Dim ItemsStock As Integer
         Dim llError As Long
         Dim lsError As String
+        Dim FromWhsCode As String
 
         oRecSetH = SBOCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset)
         oRecSetH2 = SBOCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset)
@@ -36,6 +37,8 @@
             coForm = SBOApplication.Forms.Item(FormUID)
             oGrid = coForm.Items.Item("3").Specific
             oDataTable = oGrid.DataTable
+            FromWhsCode = coForm.DataSources.UserDataSources.Item("dsSucursaO").Value
+
 
             'Revisar si hay articulos a surtir
 
@@ -63,7 +66,7 @@
 
                 Else
 
-                    oTransferRequest.FromWarehouse = coForm.DataSources.UserDataSources.Item("dsSucursaO").Value
+                    oTransferRequest.FromWarehouse = FromWhsCode
 
                 End If
 
@@ -73,8 +76,17 @@
 
                         TotalRequerido = oDataTable.GetValue("Solicitud Sugerida M2", i) + oDataTable.GetValue("Solicitud Extra M2", i)
 
-                        stQueryH = "CALL CONSULTA_STOCK_VALLEJO('" & oDataTable.GetValue("Artículo", i) & "')"
-                        oRecSetH.DoQuery(stQueryH)
+                        If WhsCode <> "001" Then
+
+                            stQueryH = "CALL CONSULTA_STOCK_VALLEJO('" & oDataTable.GetValue("Artículo", i) & "')"
+                            oRecSetH.DoQuery(stQueryH)
+
+                        Else
+
+                            stQueryH = "CALL CONSULTA_STOCK('" & oDataTable.GetValue("Artículo", i) & "','" & FromWhsCode & "')"
+                            oRecSetH.DoQuery(stQueryH)
+
+                        End If
 
                         If oRecSetH.RecordCount > 0 Then
 
@@ -108,7 +120,7 @@
 
                                     Else
 
-                                        oTransferRequest.Lines.FromWarehouseCode = coForm.DataSources.UserDataSources.Item("dsSucursaO").Value
+                                        oTransferRequest.Lines.FromWarehouseCode = FromWhsCode
 
                                     End If
 
@@ -121,12 +133,12 @@
                                 stQueryH3 = "CALL CONSULTA_REQUERIDO_DOWN(" & Resto & ",'" & oDataTable.GetValue("Artículo", i) & "')"
                                 oRecSetH3.DoQuery(stQueryH3)
 
-                                If oRecSetH2.RecordCount > 0 Then
+                                If oRecSetH3.RecordCount > 0 Then
 
-                                    oRecSetH2.MoveFirst()
+                                    oRecSetH3.MoveFirst()
 
-                                    Requerido = oRecSetH2.Fields.Item("Requerido").Value
-                                    Cajas = oRecSetH2.Fields.Item("Cajas").Value
+                                    Requerido = oRecSetH3.Fields.Item("Requerido").Value
+                                    Cajas = oRecSetH3.Fields.Item("Cajas").Value
 
                                     oTransferRequest.Lines.ItemCode = oDataTable.GetValue("Artículo", i)
                                     oTransferRequest.Lines.Quantity = Requerido
@@ -140,7 +152,7 @@
 
                                     Else
 
-                                        oTransferRequest.Lines.FromWarehouseCode = coForm.DataSources.UserDataSources.Item("dsSucursaO").Value
+                                        oTransferRequest.Lines.FromWarehouseCode = FromWhsCode
 
                                     End If
 
