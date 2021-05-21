@@ -37,8 +37,12 @@
             coForm = SBOApplication.Forms.Item(FormUID)
             oGrid = coForm.Items.Item("3").Specific
             oDataTable = oGrid.DataTable
-            FromWhsCode = coForm.DataSources.UserDataSources.Item("dsSucursaO").Value
 
+            If WhsCode = "001" Then
+
+                FromWhsCode = coForm.DataSources.UserDataSources.Item("dsSucursaO").Value
+
+            End If
 
             'Revisar si hay articulos a surtir
 
